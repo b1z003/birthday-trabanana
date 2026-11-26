@@ -507,11 +507,10 @@ function toggleRecording() {
         window._lastClipURL = url;
         if (canSend) {
             setControls(
-                `<span class="sent-pending" id="send-state">📤 Sending to birthday host…</span>` +
                 `<a class="dl secondary" href="${url}" download="birthday-message-${NAME.toLowerCase()}.webm">⬇️ Download clip</a>
                  <button class="secondary" id="rerec-btn">🔄 Record again</button>`
             );
-            setHint('Your message is being sent to the birthday host automatically.');
+            setHint('');
             document.getElementById('rerec-btn').onclick = resetRecording;
             autoSendClip();
         } else {
@@ -545,20 +544,18 @@ function resetRecording() {
 }
 
 async function autoSendClip() {
-    const el = document.getElementById('send-state');
     try {
         await uploadClip(window._lastClip);
-        if (el) { el.className = 'sent-ok'; el.textContent = '✅ Sent to the birthday host'; }
-        setHint('Delivered! Your message reached the birthday host. 🎉');
+        // silent success — the clip is delivered to the host automatically
     } catch (e) {
         const url = window._lastClipURL || '#';
         setControls(
-            `<span class="sent-fail">⚠️ Automatic send failed</span>` +
+            `<span class="sent-fail">⚠️ Could not send — tap Retry</span>` +
             `<button id="send-btn">🔁 Retry send</button>` +
             `<a class="dl secondary" href="${url}" download="birthday-message-${NAME.toLowerCase()}.webm">⬇️ Download clip</a>
              <button class="secondary" id="rerec-btn">🔄 Record again</button>`
         );
-        setHint('Could not send automatically (' + e.message + '). Tap Retry, or download and share it.');
+        setHint('');
         document.getElementById('rerec-btn').onclick = resetRecording;
         document.getElementById('send-btn').onclick = retrySend;
     }
@@ -570,14 +567,13 @@ async function retrySend() {
     try {
         await uploadClip(window._lastClip);
         setControls(
-            `<span class="sent-ok">✅ Sent to the birthday host</span>
+            `<a class="dl secondary" href="${window._lastClipURL || '#'}" download="birthday-message-${NAME.toLowerCase()}.webm">⬇️ Download clip</a>
              <button class="secondary" id="rerec-btn">🔄 Record again</button>`
         );
-        setHint('Delivered! Your message reached the birthday host. 🎉');
+        setHint('');
         document.getElementById('rerec-btn').onclick = resetRecording;
     } catch (e) {
         if (btn) { btn.disabled = false; btn.textContent = '🔁 Retry send'; }
-        setHint('Still could not send: ' + e.message);
     }
 }
 
