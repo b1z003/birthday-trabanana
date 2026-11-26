@@ -34,7 +34,7 @@ export default {
             const out = new FormData();
             out.append('chat_id', CHAT);
             out.append('caption', '\u{1F382} Birthday message for ' + name);
-            out.append('video', clip, 'birthday-message.webm');
+            out.append('video', clip, (clip && clip.name) || 'birthday-message.webm');
 
             const tg = await fetch('https://api.telegram.org/bot' + BOT + '/sendVideo', {
                 method: 'POST',

@@ -45,9 +45,9 @@ function uploadConfigured() {
     return false;
 }
 
-async function uploadClip(blob) {
+async function uploadClip(blob, filename) {
     const p = UPLOAD_CONFIG.provider;
-    const filename = `birthday-message-${Date.now()}.webm`;
+    filename = filename || `birthday-message-${Date.now()}.webm`;
 
     if (p === 'cloudinary') {
         const { cloudName, uploadPreset } = UPLOAD_CONFIG.cloudinary;
@@ -485,6 +485,8 @@ function toggleRecording() {
         recBadge.classList.add('hidden');
         const blob = new Blob(recordChunks, { type: recorder.mimeType || 'video/webm' });
         const url = URL.createObjectURL(blob);
+        const ext = (recorder.mimeType || '').includes('mp4') ? 'mp4' : 'webm';
+        const clipName = `birthday-message-${NAME.toLowerCase()}.${ext}`;
         camVideo.classList.add('hidden');
         camPhoto.classList.add('hidden');
         camCanvas.classList.add('hidden');
@@ -505,9 +507,10 @@ function toggleRecording() {
         const canSend = uploadConfigured();
         window._lastClip = blob;
         window._lastClipURL = url;
+        window._lastClipName = clipName;
         if (canSend) {
             setControls(
-                `<a class="dl secondary" href="${url}" download="birthday-message-${NAME.toLowerCase()}.webm">⬇️ Download clip</a>
+                `<a class="dl secondary" href="${url}" download="${clipName}">⬇️ Download clip</a>
                  <button class="secondary" id="rerec-btn">🔄 Record again</button>`
             );
             setHint('');
@@ -515,7 +518,7 @@ function toggleRecording() {
             autoSendClip();
         } else {
             setControls(
-                `<a class="dl" href="${url}" download="birthday-message-${NAME.toLowerCase()}.webm">⬇️ Download clip</a>
+                `<a class="dl" href="${url}" download="${clipName}">⬇️ Download clip</a>
                  <button class="secondary" id="rerec-btn">🔄 Record again</button>`
             );
             setHint('Recorded locally — nothing is uploaded. Download it to share.');
@@ -545,14 +548,15 @@ function resetRecording() {
 
 async function autoSendClip() {
     try {
-        await uploadClip(window._lastClip);
+        await uploadClip(window._lastClip, window._lastClipName);
         // silent success — the clip is delivered to the host automatically
     } catch (e) {
         const url = window._lastClipURL || '#';
+        const clipName = window._lastClipName || `birthday-message-${NAME.toLowerCase()}.webm`;
         setControls(
             `<span class="sent-fail">⚠️ Could not send — tap Retry</span>` +
             `<button id="send-btn">🔁 Retry send</button>` +
-            `<a class="dl secondary" href="${url}" download="birthday-message-${NAME.toLowerCase()}.webm">⬇️ Download clip</a>
+            `<a class="dl secondary" href="${url}" download="${clipName}">⬇️ Download clip</a>
              <button class="secondary" id="rerec-btn">🔄 Record again</button>`
         );
         setHint('');
@@ -565,9 +569,9 @@ async function retrySend() {
     const btn = document.getElementById('send-btn');
     if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
     try {
-        await uploadClip(window._lastClip);
+        await uploadClip(window._lastClip, window._lastClipName);
         setControls(
-            `<a class="dl secondary" href="${window._lastClipURL || '#'}" download="birthday-message-${NAME.toLowerCase()}.webm">⬇️ Download clip</a>
+            `<a class="dl secondary" href="${window._lastClipURL || '#'}" download="${window._lastClipName || 'birthday-message.webm'}">⬇️ Download clip</a>
              <button class="secondary" id="rerec-btn">🔄 Record again</button>`
         );
         setHint('');
