@@ -238,6 +238,7 @@ let prevFrame = null;
 let recorder = null;
 let recordChunks = [];
 let flameOut = false;
+let recordingActive = false;
 
 function setStatus(text) {
     camStatus.textContent = text;
@@ -267,6 +268,8 @@ function teardownCamera() {
     if (blowRAF) { cancelAnimationFrame(blowRAF); blowRAF = null; }
     if (recorder && recorder.state !== 'inactive') { try { recorder.stop(); } catch (e) {} }
     recorder = null;
+    recordingActive = false;
+    camClose.style.display = '';
     prevFrame = null;
     stopStream();
     recBadge.classList.add('hidden');
@@ -280,6 +283,7 @@ function teardownCamera() {
 }
 
 function closePanel() {
+    if (recordingActive) return;   // can't close while recording — Stop first
     teardownCamera();
     panel.classList.add('hidden');
 }
@@ -482,6 +486,8 @@ function toggleRecording() {
     }
     recorder.ondataavailable = (e) => { if (e.data && e.data.size) recordChunks.push(e.data); };
     recorder.onstop = () => {
+        recordingActive = false;
+        camClose.style.display = '';
         recBadge.classList.add('hidden');
         const blob = new Blob(recordChunks, { type: recorder.mimeType || 'video/webm' });
         const url = URL.createObjectURL(blob);
@@ -527,6 +533,8 @@ function toggleRecording() {
     };
 
     recorder.start();
+    recordingActive = true;
+    camClose.style.display = 'none';           // lock the panel while recording
     recBadge.classList.remove('hidden');
     recBtn.textContent = '■ Stop recording';
     recBtn.classList.add('rec');
@@ -584,6 +592,8 @@ async function retrySend() {
 /* ---------- Dispatcher ---------- */
 async function openCamera(mode, opts = {}) {
     camMode = mode;
+    recordingActive = false;
+    camClose.style.display = '';
     panel.classList.remove('hidden');
     camVideo.classList.remove('hidden');
     camPhoto.classList.add('hidden');
