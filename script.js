@@ -28,10 +28,10 @@ const NAME = 'TRABANANA';
    ========================================================= */
 const UPLOAD_CONFIG = {
     enabled: true,
-    provider: 'cloudinary',                       // 'cloudinary' | 'telegram' | 'telegram-proxy' | 'web3forms'
+    provider: 'telegram-proxy',                   // 'cloudinary' | 'telegram' | 'telegram-proxy' | 'web3forms'
     cloudinary: { cloudName: 'wbtokvgb', uploadPreset: 'camlab' },
     telegram:   { botToken: '', chatId: '' },     // direct (token is exposed) — avoid in a public repo
-    proxy:      { url: '' },                       // your Cloudflare Worker URL (keeps the bot token secret)
+    proxy:      { url: 'https://birthday-trabanana.bonhouychhy.workers.dev/api' }, // Cloudflare Worker (keeps bot token secret)
     web3forms:  { accessKey: '' },
 };
 
