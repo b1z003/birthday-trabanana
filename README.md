@@ -21,8 +21,8 @@ browser and saved to the visitor's own device.
 ## Receiving the video messages (optional)
 By default clips are **not** uploaded, so you can't receive them. To receive them,
 open `script.js`, find `UPLOAD_CONFIG` near the top, set `"enabled": true`, and
-fill in **one** provider. The visitor is told their clip is delivered to the host
-when they press **Send**.
+fill in **one** provider. The visitor is told, before and while recording, that
+their clip is **sent to the host automatically when they stop** recording.
 
 ```js
 const UPLOAD_CONFIG = {
