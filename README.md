@@ -42,6 +42,10 @@ const UPLOAD_CONFIG = {
   Videos arrive in your chat. (Note: the bot token is visible in the page source.)
 - **Web3Forms**: get a free access key from web3forms.com. Clips are emailed to you
   (size limited — short messages only).
+- **Telegram via proxy** (recommended for Telegram): deploy `worker/` as a Cloudflare
+  Worker so the bot token stays secret, then set
+  `provider: 'telegram-proxy'` and `proxy: { url: 'https://<your-worker>.workers.dev' }`.
+  See `worker/README.md`. Clips arrive in your Telegram chat.
 
 
 ## Run locally

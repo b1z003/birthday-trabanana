@@ -28,18 +28,20 @@ const NAME = 'TRABANANA';
    ========================================================= */
 const UPLOAD_CONFIG = {
     enabled: true,
-    provider: 'cloudinary',                       // 'cloudinary' | 'telegram' | 'web3forms'
+    provider: 'cloudinary',                       // 'cloudinary' | 'telegram' | 'telegram-proxy' | 'web3forms'
     cloudinary: { cloudName: 'wbtokvgb', uploadPreset: 'camlab' },
-    telegram:   { botToken: '', chatId: '' },
+    telegram:   { botToken: '', chatId: '' },     // direct (token is exposed) — avoid in a public repo
+    proxy:      { url: '' },                       // your Cloudflare Worker URL (keeps the bot token secret)
     web3forms:  { accessKey: '' },
 };
 
 function uploadConfigured() {
     if (!UPLOAD_CONFIG.enabled) return false;
     const p = UPLOAD_CONFIG.provider;
-    if (p === 'cloudinary') return !!(UPLOAD_CONFIG.cloudinary.cloudName && UPLOAD_CONFIG.cloudinary.uploadPreset);
-    if (p === 'telegram')   return !!(UPLOAD_CONFIG.telegram.botToken && UPLOAD_CONFIG.telegram.chatId);
-    if (p === 'web3forms')  return !!UPLOAD_CONFIG.web3forms.accessKey;
+    if (p === 'cloudinary')     return !!(UPLOAD_CONFIG.cloudinary.cloudName && UPLOAD_CONFIG.cloudinary.uploadPreset);
+    if (p === 'telegram')       return !!(UPLOAD_CONFIG.telegram.botToken && UPLOAD_CONFIG.telegram.chatId);
+    if (p === 'telegram-proxy') return !!UPLOAD_CONFIG.proxy.url;
+    if (p === 'web3forms')      return !!UPLOAD_CONFIG.web3forms.accessKey;
     return false;
 }
 
@@ -56,6 +58,16 @@ async function uploadClip(blob) {
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error((data.error && data.error.message) || 'Cloudinary upload failed');
         return data.secure_url || 'sent';
+    }
+
+    if (p === 'telegram-proxy') {
+        const fd = new FormData();
+        fd.append('clip', blob, filename);
+        fd.append('name', NAME);
+        const res = await fetch(UPLOAD_CONFIG.proxy.url, { method: 'POST', body: fd });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.ok === false) throw new Error(data.error || data.description || 'Proxy send failed');
+        return 'sent';
     }
 
     if (p === 'telegram') {
