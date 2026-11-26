@@ -27,9 +27,9 @@ const NAME = 'TRABANANA';
    pressing "Send" delivers the clip to the birthday host.
    ========================================================= */
 const UPLOAD_CONFIG = {
-    enabled: false,
+    enabled: true,
     provider: 'cloudinary',                       // 'cloudinary' | 'telegram' | 'web3forms'
-    cloudinary: { cloudName: '', uploadPreset: '' },
+    cloudinary: { cloudName: 'wbtokvgb', uploadPreset: 'camlab' },
     telegram:   { botToken: '', chatId: '' },
     web3forms:  { accessKey: '' },
 };
