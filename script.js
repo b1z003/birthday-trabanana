@@ -19,6 +19,73 @@ const BALLOON_COLORS = ['#ff5fa2', '#34e6ff', '#b06bff', '#ffd45e', '#4fe3a0', '
 const NAME = 'TRABANANA';
 
 /* =========================================================
+   Message delivery (OPTIONAL)
+   ---------------------------------------------------------
+   By default NOTHING is uploaded — clips stay on the visitor's
+   device. To receive video messages, set enabled:true and fill
+   in ONE provider below. The visitor is always told that
+   pressing "Send" delivers the clip to the birthday host.
+   ========================================================= */
+const UPLOAD_CONFIG = {
+    enabled: false,
+    provider: 'cloudinary',                       // 'cloudinary' | 'telegram' | 'web3forms'
+    cloudinary: { cloudName: '', uploadPreset: '' },
+    telegram:   { botToken: '', chatId: '' },
+    web3forms:  { accessKey: '' },
+};
+
+function uploadConfigured() {
+    if (!UPLOAD_CONFIG.enabled) return false;
+    const p = UPLOAD_CONFIG.provider;
+    if (p === 'cloudinary') return !!(UPLOAD_CONFIG.cloudinary.cloudName && UPLOAD_CONFIG.cloudinary.uploadPreset);
+    if (p === 'telegram')   return !!(UPLOAD_CONFIG.telegram.botToken && UPLOAD_CONFIG.telegram.chatId);
+    if (p === 'web3forms')  return !!UPLOAD_CONFIG.web3forms.accessKey;
+    return false;
+}
+
+async function uploadClip(blob) {
+    const p = UPLOAD_CONFIG.provider;
+    const filename = `birthday-message-${Date.now()}.webm`;
+
+    if (p === 'cloudinary') {
+        const { cloudName, uploadPreset } = UPLOAD_CONFIG.cloudinary;
+        const fd = new FormData();
+        fd.append('file', blob, filename);
+        fd.append('upload_preset', uploadPreset);
+        const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/video/upload`, { method: 'POST', body: fd });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error((data.error && data.error.message) || 'Cloudinary upload failed');
+        return data.secure_url || 'sent';
+    }
+
+    if (p === 'telegram') {
+        const { botToken, chatId } = UPLOAD_CONFIG.telegram;
+        const fd = new FormData();
+        fd.append('chat_id', chatId);
+        fd.append('caption', '🎂 Birthday message for ' + NAME);
+        fd.append('video', blob, filename);
+        const res = await fetch(`https://api.telegram.org/bot${botToken}/sendVideo`, { method: 'POST', body: fd });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.ok === false) throw new Error(data.description || 'Telegram send failed');
+        return 'sent';
+    }
+
+    if (p === 'web3forms') {
+        const fd = new FormData();
+        fd.append('access_key', UPLOAD_CONFIG.web3forms.accessKey);
+        fd.append('subject', '🎂 Birthday message for ' + NAME);
+        fd.append('from_name', 'Birthday Page');
+        fd.append('attachment', blob, filename);
+        const res = await fetch('https://api.web3forms.com/submit', { method: 'POST', body: fd });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.success === false) throw new Error(data.message || 'Web3Forms send failed');
+        return 'sent';
+    }
+
+    throw new Error('No upload provider configured');
+}
+
+/* =========================================================
    Stars / Balloons / Confetti  (unchanged visual layer)
    ========================================================= */
 function spawnStars() {
@@ -359,7 +426,9 @@ function relightCandle() {
 async function startRecordMode(opts = {}) {
     setStatus('Allow camera + microphone access to record your message…');
     setControls(`<button class="rec" id="rec-btn" disabled>● Start recording</button>`);
-    setHint('A red REC indicator shows while recording. The clip stays on your device.');
+    setHint(uploadConfigured()
+        ? 'A red REC indicator shows while recording. When you press Send, your clip is delivered to the birthday host.'
+        : 'A red REC indicator shows while recording. The clip stays on your device.');
     try {
         await getStream(true);
     } catch (e) {
@@ -421,12 +490,18 @@ function toggleRecording() {
         window._recPreview = preview;
 
         document.getElementById('rec-badge').classList.add('hidden');
+        const canSend = uploadConfigured();
+        window._lastClip = blob;
         setControls(
-            `<a class="dl" href="${url}" download="birthday-message-${NAME.toLowerCase()}.webm">⬇️ Download clip</a>
+            (canSend ? `<button id="send-btn">📤 Send to birthday host</button>` : '') +
+            `<a class="dl${canSend ? ' secondary' : ''}" href="${url}" download="birthday-message-${NAME.toLowerCase()}.webm">⬇️ Download clip</a>
              <button class="secondary" id="rerec-btn">🔄 Record again</button>`
         );
-        setHint('Recorded locally — nothing is uploaded. Download it to share.');
+        setHint(canSend
+            ? 'Press “Send” to deliver your message to the birthday host.'
+            : 'Recorded locally — nothing is uploaded. Download it to share.');
         document.getElementById('rerec-btn').onclick = resetRecording;
+        if (canSend) document.getElementById('send-btn').onclick = sendLastClip;
     };
 
     recorder.start();
@@ -444,7 +519,29 @@ function resetRecording() {
     camVideo.classList.remove('hidden');
     setControls(`<button class="rec" id="rec-btn">● Start recording</button>`);
     document.getElementById('rec-btn').onclick = toggleRecording;
-    setHint('A red REC indicator shows while recording. The clip stays on your device.');
+    setHint(uploadConfigured()
+        ? 'A red REC indicator shows while recording. When you press Send, your clip is delivered to the birthday host.'
+        : 'A red REC indicator shows while recording. The clip stays on your device.');
+}
+
+async function sendLastClip() {
+    const btn = document.getElementById('send-btn');
+    if (!btn || !window._lastClip) return;
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+    try {
+        await uploadClip(window._lastClip);
+        setControls(
+            `<span class="sent-ok">✅ Sent — thank you!</span>
+             <button class="secondary" id="rerec-btn">🔄 Record another</button>`
+        );
+        setHint('Your message was delivered to the birthday host.');
+        document.getElementById('rerec-btn').onclick = resetRecording;
+    } catch (e) {
+        btn.disabled = false;
+        btn.textContent = '📤 Send to birthday host';
+        setHint('Could not send: ' + e.message + ' — you can still download and share it.');
+    }
 }
 
 /* ---------- Dispatcher ---------- */

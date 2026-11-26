@@ -490,6 +490,18 @@ html, body {
 }
 .cam-hint a { color: #7ff0ff; }
 
+.sent-ok {
+    align-self: center;
+    padding: .65rem 1.2rem;
+    font-size: .9rem;
+    font-weight: 700;
+    letter-spacing: .5px;
+    color: #4fe3a0;
+    border: 1.5px solid rgba(79, 227, 160, .55);
+    border-radius: 10px;
+    box-shadow: 0 0 16px rgba(79, 227, 160, .35);
+}
+
 /* ===== Candle blown out ===== */
 .flame.out {
     animation: none;
